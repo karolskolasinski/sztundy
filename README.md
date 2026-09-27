@@ -281,16 +281,6 @@ Obejmuje:
 
 ## Obszary zmienności:
 
-1. Interakcja z użytkownikiem (Client)
-2. Przebieg i sekwencja przypadków użycia (Workflow)
-3. Reguły organizacji wydarzeń sportowych
-4. Reguły wyliczania statystyk i postępów
-5. Źródła danych statystycznych
-6. Sposób przechowywania i dostępu do danych
-7. Powiadomienia i sposób komunikacji z użytkownikiem
-8. Uwierzytelnianie i autoryzacja
-9. Sport/specyfika rodzaju aktywności
-
 | #  | Obszar zmienności                           | Przykładowa zmienność                             |
 |----|---------------------------------------------|---------------------------------------------------|
 | 1  | **Typ i reguły wydarzenia**                 | trening, sparing, kolejne rodzaje aktywności      |
