@@ -96,7 +96,7 @@ func runDatabaseConnection(databaseURL string) (*pgxpool.Pool, error) {
 
 func runHTTPServer(addr string) error {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
-		return fmt.Errorf("Invalid HTTP_ADDR %q: %w", addr, err)
+		return fmt.Errorf("Validate HTTP_ADDR %q: %w", addr, err)
 	}
 
 	server := &http.Server{
@@ -109,7 +109,7 @@ func runHTTPServer(addr string) error {
 
 	if err := server.ListenAndServe(); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("HTTP server: %w", err)
+		return fmt.Errorf("Start HTTP server: %w", err)
 	}
 
 	return nil
