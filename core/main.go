@@ -1,131 +1,106 @@
-//package main
-//
-//import (
-//	"context"
-//	"errors"
-//	"fmt"
-//	"log"
-//	"net/http"
-//	"os"
-//	"os/signal"
-//	"syscall"
-//	"time"
-//
-//	"github.com/jackc/pgx/v5/pgxpool"
-//	"github.com/joho/godotenv"
-//
-//	"core/internal/httpapi"
-//)
-//
-//func main() {
-//	if err := run(); err != nil {
-//		log.Fatal(err)
-//	}
-//}
-//
-//func run() error {
-//	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
-//		return fmt.Errorf("load .env: %w", err)
-//	}
-//
-//	databaseURL := os.Getenv("DATABASE_URL")
-//	if databaseURL == "" {
-//		return errors.New("DATABASE_URL is not set")
-//	}
-//
-//	addr := os.Getenv("HTTP_ADDR")
-//	if addr == "" {
-//		addr = "127.0.0.1:8080"
-//	}
-//
-//	ctx, stop := signal.NotifyContext(
-//		context.Background(),
-//		os.Interrupt,
-//		syscall.SIGTERM,
-//	)
-//	defer stop()
-//
-//	pool, err := pgxpool.New(ctx, databaseURL)
-//	if err != nil {
-//		return fmt.Errorf("create PostgreSQL connection pool: %w", err)
-//	}
-//	defer pool.Close()
-//
-//	pingCtx, cancelPing := context.WithTimeout(ctx, 5*time.Second)
-//	err = pool.Ping(pingCtx)
-//	cancelPing()
-//
-//	if err != nil {
-//		return fmt.Errorf("connect to PostgreSQL: %w", err)
-//	}
-//
-//	log.Println("PostgreSQL connection established")
-//
-//	server := &http.Server{
-//		Addr:              addr,
-//		Handler:           httpapi.New(),
-//		ReadHeaderTimeout: 5 * time.Second,
-//		ReadTimeout:       10 * time.Second,
-//		WriteTimeout:      15 * time.Second,
-//		IdleTimeout:       60 * time.Second,
-//	}
-//
-//	serverErrors := make(chan error, 1)
-//
-//	go func() {
-//		log.Printf("HTTP server listening on %s", server.Addr)
-//		serverErrors <- server.ListenAndServe()
-//	}()
-//
-//	select {
-//	case err := <-serverErrors:
-//		if !errors.Is(err, http.ErrServerClosed) {
-//			return fmt.Errorf("HTTP server: %w", err)
-//		}
-//		return nil
-//
-//	case <-ctx.Done():
-//		shutdownCtx, cancelShutdown := context.WithTimeout(
-//			context.Background(),
-//			10*time.Second,
-//		)
-//		defer cancelShutdown()
-//
-//		if err := server.Shutdown(shutdownCtx); err != nil {
-//			_ = server.Close()
-//			return fmt.Errorf("shutdown HTTP server: %w", err)
-//		}
-//
-//		err := <-serverErrors
-//		if !errors.Is(err, http.ErrServerClosed) {
-//			return fmt.Errorf("HTTP server after shutdown: %w", err)
-//		}
-//
-//		return nil
-//	}
-//}
-
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"core/internal/httpapi"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
+type config struct {
+	databaseURL string
+	httpAddr    string
+}
+
 func main() {
-	if err := runHTTPServer(); err != nil {
+	if err := run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func runHTTPServer() error {
+func run() error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+
+	pool, err := runDatabaseConnection(cfg.databaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+
+	if err := runHTTPServer(cfg.httpAddr); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func loadConfig() (config, error) {
+	if err := godotenv.Load(); err != nil &&
+		!errors.Is(err, os.ErrNotExist) {
+		return config{}, fmt.Errorf("Load environment: %w", err)
+	}
+
+	cfg := config{
+		databaseURL: os.Getenv("DATABASE_URL"),
+		httpAddr:    os.Getenv("HTTP_ADDR"),
+	}
+
+	if cfg.databaseURL == "" {
+		return config{}, errors.New("DATABASE_URL is not set")
+	}
+
+	if cfg.httpAddr == "" {
+		return config{}, errors.New("HTTP_ADDR is not set")
+	}
+
+	return cfg, nil
+}
+
+func runDatabaseConnection(databaseURL string) (*pgxpool.Pool, error) {
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("Parse PostgreSQL connection configuration: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Create PostgreSQL connection pool: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("Connect to PostgreSQL: %w", err)
+	}
+
+	host := poolConfig.ConnConfig.Host
+	port := poolConfig.ConnConfig.Port
+	log.Printf("Connected to PostgreSQL at %s:%d", host, port)
+
+	return pool, nil
+}
+
+func runHTTPServer(addr string) error {
+	if _, _, err := net.SplitHostPort(addr); err != nil {
+		return fmt.Errorf("Invalid HTTP_ADDR %q: %w", addr, err)
+	}
+
 	server := &http.Server{
-		Addr:              ":3000",
+		Addr:              addr,
 		Handler:           httpapi.New(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
