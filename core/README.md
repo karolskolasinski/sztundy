@@ -15,7 +15,7 @@ Przykładowy adres dla lokalnego PostgreSQL:
 
 Jeśli hasło zawiera znaki specjalne używane w adresach URL, zakoduj je procentowo. Dla Neon użyj connection stringa z konsoli Neon i wymaganym `sslmode=require`.
 
-Domyślnie serwer nasłuchuje na `127.0.0.1:8080`, aby nie udostępniać niedokończonego API w sieci. Adres można zmienić przez `HTTP_ADDR`.
+`DATABASE_URL` i `HTTP_ADDR` są wymagane. Aplikacja nie używa wartości domyślnych; jeśli którejś zmiennej brakuje, kończy działanie z komunikatem błędu. Ustaw `HTTP_ADDR` (np. `127.0.0.1:8080`), aby określić adres nasłuchiwania. Plik `.env` jest wczytywany automatycznie, jeśli istnieje.
 
 ## Schemat bazy danych
 

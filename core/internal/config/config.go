@@ -2,7 +2,10 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -11,14 +14,18 @@ type Config struct {
 }
 
 func Load() (Config, error) {
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return Config{}, fmt.Errorf("Load environment: %w", err)
+	}
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		return Config{}, errors.New("zmienna DATABASE_URL nie jest ustawiona")
+		return Config{}, errors.New("DATABASE_URL is not set")
 	}
 
 	httpAddr := os.Getenv("HTTP_ADDR")
 	if httpAddr == "" {
-		httpAddr = "127.0.0.1:8080"
+		return Config{}, errors.New("HTTP_ADDR is not set")
 	}
 
 	return Config{
