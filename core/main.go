@@ -47,8 +47,7 @@ func run() error {
 }
 
 func loadConfig() (config, error) {
-	if err := godotenv.Load(); err != nil &&
-		!errors.Is(err, os.ErrNotExist) {
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return config{}, fmt.Errorf("Load environment: %w", err)
 	}
 
@@ -107,8 +106,7 @@ func runHTTPServer(addr string) error {
 
 	log.Printf("HTTP server listening on %s", server.Addr)
 
-	if err := server.ListenAndServe(); err != nil &&
-		!errors.Is(err, http.ErrServerClosed) {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("Start HTTP server: %w", err)
 	}
 
