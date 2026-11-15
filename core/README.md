@@ -81,3 +81,37 @@ CREATE ROLE core WITH LOGIN PASSWORD 'TWOJE_MOCNE_HASLO';
 CREATE DATABASE sztundy_db OWNER core;
 
 Zastąp `TWOJE_MOCNE_HASLO` własnym, silnym hasłem. W rezultacie będziesz mieć konto administracyjne `postgres` oraz bazę `sztundy_db` z użytkownikiem aplikacyjnym `core`. To właśnie dane drugiego konta trafią później do `DATABASE_URL` w aplikacji.`
+
+
+
+
+# Core
+
+## Konfiguracja
+
+W katalogu projektu utwórz plik `.env`:
+
+```env
+DATABASE_URL=postgresql://localhost:5432/sztundy_core?sslmode=disable
+PG_USERNAME=core
+PG_PASSWORD=twoje-haslo
+HTTP_ADDR=127.0.0.1:8080
+```
+
+Wszystkie zmienne są wymagane. `DATABASE_URL` musi zawierać protokół PostgreSQL, host, jawny port i
+nazwę bazy. Login i hasło do połączenia pochodzą z `PG_USERNAME` i `PG_PASSWORD`; dane
+uwierzytelniające zawarte w URL nie są używane. `HTTP_ADDR` musi mieć format `host:port` (IPv6
+zapisuj w nawiasach, np. `[::1]:8080`). Przy połączeniu TLS ustaw `sslmode=require` w URL.
+
+Baza `sztundy_core` musi już istnieć. Schemat można utworzyć poleceniem:
+
+```bash
+PGUSER="$PG_USERNAME" PGPASSWORD="$PG_PASSWORD" \
+  psql -h localhost -p 5432 -d sztundy_core -f migrations/001_create_users.sql
+```
+
+## Uruchomienie
+
+Wymagany jest Deno 2. Uruchom serwer poleceniem `deno task start`. Aplikacja najpierw sprawdza
+konfigurację i połączenie z PostgreSQL; dopiero po udanym zapytaniu kontrolnym uruchamia Hono.
+`GET /` zwraca `{"ok":true}`.
