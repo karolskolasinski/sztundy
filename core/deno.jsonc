@@ -5,7 +5,8 @@
   },
   "tasks": {
     // --allow-sys=homedir: the npm "postgres" package calls node:os.homedir(), which Deno gates behind the sys permission
-    "start": "deno run --env-file --allow-sys=homedir --allow-env --allow-net main.ts"
+    "start": "deno run --env-file=.env --allow-sys=homedir --allow-env --allow-net main.ts",
+    "prod": "deno run --env-file=.env.production --allow-sys=homedir --allow-env --allow-net main.ts"
   },
   "compilerOptions": {
     "jsx": "precompile",
