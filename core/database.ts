@@ -11,8 +11,8 @@ export async function connectDatabase(config: AppConfig) {
   });
 
   try {
-    await sql`SELECT * FROM pg_catalog.pg_tables LIMIT 1`;
-    console.info(`PostgreSQL connected at ${config.database.host}:${config.database.port}`);
+    const [info] = await sql`SELECT current_database(), current_user, version(), now()`;
+    console.info(`PostgreSQL connected at ${config.database.host}:${config.database.port}`, info);
     return sql;
   } catch (err) {
     console.error("PostgreSQL connection failed:", err);
